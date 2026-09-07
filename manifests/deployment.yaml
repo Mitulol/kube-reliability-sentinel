@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-reliability-sentinel
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/name: kube-reliability-sentinel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kube-reliability-sentinel
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kube-reliability-sentinel
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+    spec:
+      serviceAccountName: kube-reliability-sentinel
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sentinel
+          image: ghcr.io/mitulol/kube-reliability-sentinel:latest
+          args:
+            - --all-namespaces=true
+            - --watch-nodes=true
+            - --metrics-addr=:8080
+            - --restart-threshold=5
+            - --pending-grace=5m
+            - --node-notready-grace=2m
+            - --rapid-restart-window=2m
+            - --rapid-restart-count=3
+            - --resend-interval=10m
+            - --log-format=json
+          ports:
+            - name: metrics
+              containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /readyz, port: metrics }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-reliability-sentinel
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/name: kube-reliability-sentinel
+spec:
+  selector:
+    app.kubernetes.io/name: kube-reliability-sentinel
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics

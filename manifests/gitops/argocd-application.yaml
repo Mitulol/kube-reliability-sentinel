@@ -1,0 +1,23 @@
+# Argo CD: same idea as the Flux example. Apply into a cluster running
+# Argo CD; it will render manifests/ with its built-in Kustomize support and
+# keep the sentinel namespace converged, self-healing manual drift.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-reliability-sentinel
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Mitulol/kube-reliability-sentinel
+    targetRevision: main
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sentinel
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

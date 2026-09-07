@@ -1,0 +1,33 @@
+# Flux: sync manifests/ from this repo every minute and prune anything it
+# no longer declares. Apply into a cluster that already has the Flux
+# source-controller and kustomize-controller running (flux install).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: kube-reliability-sentinel
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/Mitulol/kube-reliability-sentinel
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: kube-reliability-sentinel
+  namespace: flux-system
+spec:
+  interval: 1m
+  path: ./manifests
+  prune: true
+  wait: true
+  timeout: 2m
+  sourceRef:
+    kind: GitRepository
+    name: kube-reliability-sentinel
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: kube-reliability-sentinel
+      namespace: sentinel

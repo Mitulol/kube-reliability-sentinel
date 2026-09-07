@@ -1,0 +1,37 @@
+# Least-privilege RBAC for Sentinel.
+#
+# Read side: get/list/watch on pods and nodes, and nothing else. Sentinel
+# never needs to see Secrets, ConfigMaps, or any workload spec, so it cannot.
+# Write side: create/patch on events only, so it can annotate the objects it
+# alerts on the same way a first-party controller does. No update/delete on
+# any resource anywhere.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-reliability-sentinel
+  namespace: sentinel
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-reliability-sentinel
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-reliability-sentinel
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-reliability-sentinel
+subjects:
+  - kind: ServiceAccount
+    name: kube-reliability-sentinel
+    namespace: sentinel
