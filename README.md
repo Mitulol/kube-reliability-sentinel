@@ -1,5 +1,7 @@
 # kube-reliability-sentinel
 
+[![ci](https://github.com/Mitulol/kube-reliability-sentinel/actions/workflows/ci.yaml/badge.svg)](https://github.com/Mitulol/kube-reliability-sentinel/actions/workflows/ci.yaml)
+
 A small Kubernetes controller, in Go, that watches Pods and Nodes and reports
 reliability problems the moment they appear: CrashLoopBackOff, OOMKilled
 containers, rapid restart bursts, high restart counts, Pods stuck Pending
