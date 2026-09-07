@@ -1,0 +1,6 @@
+.git
+bin
+docs
+*.md
+cover.out
+hack
