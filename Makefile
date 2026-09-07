@@ -32,12 +32,16 @@ kind-up:
 kind-down:
 	kind delete cluster --name $(KIND_CLUSTER)
 
-# Build, side-load into kind (no registry needed), and apply.
-deploy: image
-	kind load docker-image $(IMAGE) --name $(KIND_CLUSTER)
-	kubectl apply -k manifests/
-	kubectl -n sentinel set image deploy/kube-reliability-sentinel sentinel=$(IMAGE)
-	kubectl -n sentinel rollout status deploy/kube-reliability-sentinel --timeout=90s
+# Build, side-load into kind (no registry needed), and apply. The image is
+# built and loaded under the exact tag manifests/deployment.yaml references,
+# and imagePullPolicy is IfNotPresent, so `kubectl apply -k` just works with
+# no patching and nothing is pulled from a registry.
+MANIFEST_IMAGE := $(shell grep -oE 'ghcr.io/mitulol/kube-reliability-sentinel:[^ ]+' manifests/base/deployment.yaml | head -1)
+deploy:
+	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) -t $(MANIFEST_IMAGE) .
+	kind load docker-image $(MANIFEST_IMAGE) --name $(KIND_CLUSTER)
+	kubectl apply -k manifests/base
+	kubectl -n sentinel rollout status deploy/kube-reliability-sentinel --timeout=180s
 
 chaos:
 	kubectl apply -f hack/chaos-workloads.yaml

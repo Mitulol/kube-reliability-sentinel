@@ -1,0 +1,57 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache: true
+      - run: go vet ./...
+      - run: go build ./...
+      - name: race tests
+        run: go test ./... -race -covermode=atomic -coverprofile=cover.out
+      - name: coverage summary
+        run: go tool cover -func=cover.out | tail -1
+
+  image:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: build container
+        run: docker build --build-arg VERSION=ci --build-arg COMMIT=${GITHUB_SHA::7} -t kube-reliability-sentinel:ci .
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: sentinel-ci
+      - name: build and side-load the image under the manifest's tag
+        run: |
+          IMG=$(grep -oE 'ghcr.io/mitulol/kube-reliability-sentinel:[^ ]+' manifests/base/deployment.yaml | head -1)
+          echo "building $IMG"
+          docker build --build-arg VERSION=ci --build-arg COMMIT=${GITHUB_SHA::7} -t "$IMG" .
+          kind load docker-image "$IMG" --name sentinel-ci
+      - name: "deploy (e2e overlay, short grace periods)"
+        run: |
+          kubectl apply -k manifests/overlays/e2e
+          kubectl -n sentinel rollout status deploy/kube-reliability-sentinel --timeout=180s
+      - name: run chaos workloads and assert detection
+        run: ./hack/e2e-assert.sh
+      - name: diagnostics on failure
+        if: failure()
+        run: |
+          kubectl -n sentinel describe pods || true
+          kubectl -n sentinel logs deploy/kube-reliability-sentinel --tail=100 || true
+          kubectl -n chaos get pods -o wide || true
+          kubectl get events -A --sort-by=.lastTimestamp | tail -40 || true

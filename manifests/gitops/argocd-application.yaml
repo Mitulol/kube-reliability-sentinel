@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/Mitulol/kube-reliability-sentinel
     targetRevision: main
-    path: manifests
+    path: manifests/base
   destination:
     server: https://kubernetes.default.svc
     namespace: sentinel

@@ -19,7 +19,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m
-  path: ./manifests
+  path: ./manifests/base
   prune: true
   wait: true
   timeout: 2m

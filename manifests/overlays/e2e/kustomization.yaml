@@ -1,0 +1,25 @@
+# e2e overlay: the base with the rule thresholds cranked down so a CI run
+# does not have to wait 5 real minutes for PodStuckPending. Used by the
+# kind job in .github/workflows/ci.yaml; not for production.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: Deployment
+      name: kube-reliability-sentinel
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - --all-namespaces=true
+          - --watch-nodes=true
+          - --metrics-addr=:8080
+          - --restart-threshold=5
+          - --pending-grace=45s
+          - --node-notready-grace=45s
+          - --rapid-restart-window=2m
+          - --rapid-restart-count=3
+          - --resend-interval=2m
+          - --log-format=json

@@ -1,0 +1,68 @@
+# Deliberately broken workloads used to validate Sentinel against a live
+# cluster. Apply with: kubectl apply -f hack/chaos-workloads.yaml
+#
+# Each Pod reproduces one reliability failure mode Sentinel is meant to
+# catch. They live in their own namespace so cleanup is one delete.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos
+---
+# 1. CrashLoopBackOff: exits non-zero immediately, forever.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crasher
+  namespace: chaos
+spec:
+  restartPolicy: Always
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sh", "-c", "echo starting; sleep 2; echo bye; exit 1"]
+---
+# 2. OOMKilled: allocates well past a tiny memory limit.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memory-hog
+  namespace: chaos
+spec:
+  restartPolicy: Always
+  containers:
+    - name: app
+      image: polinux/stress:1.0.4
+      command: ["stress"]
+      args: ["--vm", "1", "--vm-bytes", "250M", "--vm-hang", "0"]
+      resources:
+        limits:
+          memory: "32Mi"
+        requests:
+          memory: "32Mi"
+---
+# 3. Stuck Pending: requests more CPU than any kind node has.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unschedulable
+  namespace: chaos
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sh", "-c", "sleep 3600"]
+      resources:
+        requests:
+          cpu: "512"
+---
+# 4. Image pull failure: tag does not exist.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-image
+  namespace: chaos
+spec:
+  containers:
+    - name: app
+      image: busybox:this-tag-does-not-exist-9p9p9p
+      command: ["sh", "-c", "sleep 3600"]

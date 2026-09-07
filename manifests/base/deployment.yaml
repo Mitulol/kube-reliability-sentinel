@@ -26,7 +26,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: sentinel
-          image: ghcr.io/mitulol/kube-reliability-sentinel:latest
+          image: ghcr.io/mitulol/kube-reliability-sentinel:v0.1.0
+          imagePullPolicy: IfNotPresent
           args:
             - --all-namespaces=true
             - --watch-nodes=true
