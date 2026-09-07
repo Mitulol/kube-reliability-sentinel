@@ -233,6 +233,10 @@ manifests/gitops/      illustrative Flux / Argo CD wiring
 hack/                  chaos workloads, e2e assertion script
 docs/                  watch-protocol design note
 ```
+## Author
+
+**Mitul Goel** &nbsp;·&nbsp; <a href="https://github.com/Mitulol" style="color:#1a5fb4;text-decoration:underline">github.com/Mitulol</a> &nbsp;·&nbsp; <a href="https://linkedin.com/in/mitul-goel" style="color:#1a5fb4;text-decoration:underline">linkedin.com/in/mitul-goel</a><br>
+University of Michigan
 
 ## License
 
