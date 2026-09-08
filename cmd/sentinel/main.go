@@ -52,27 +52,35 @@ type flags struct {
 	showVersion      bool
 }
 
-func parseFlags() flags {
-	var f flags
-	flag.StringVar(&f.kubeconfig, "kubeconfig", envOr("KUBECONFIG", ""), "path to kubeconfig; empty means in-cluster config, then ~/.kube/config")
-	flag.StringVar(&f.namespace, "namespace", "", "namespace to watch; empty with --all-namespaces=false watches the namespace from kubeconfig context")
-	flag.BoolVar(&f.allNamespaces, "all-namespaces", true, "watch Pods in every namespace")
-	flag.BoolVar(&f.watchNodes, "watch-nodes", true, "also watch Nodes for NotReady / resource pressure")
-	flag.StringVar(&f.metricsAddr, "metrics-addr", ":8080", "address for the /metrics, /healthz and /readyz server")
-	flag.IntVar(&f.restartThreshold, "restart-threshold", 5, "per-container restart count that trips HighRestartCount when not Ready")
-	flag.DurationVar(&f.pendingGrace, "pending-grace", 5*time.Minute, "how long a Pod may stay Pending before PodStuckPending fires")
-	flag.DurationVar(&f.nodeGrace, "node-notready-grace", 2*time.Minute, "how long a Node may be NotReady before NodeNotReady fires")
-	flag.DurationVar(&f.rapidWindow, "rapid-restart-window", 2*time.Minute, "sliding window for the rapid-restart burst detector")
-	flag.IntVar(&f.rapidCount, "rapid-restart-count", 3, "restart-count increases within the window that trip RapidRestart (0 disables)")
-	flag.DurationVar(&f.resendInterval, "resend-interval", 10*time.Minute, "minimum gap before an identical alert is delivered again")
-	flag.DurationVar(&f.clearGrace, "clear-grace", 0, "how long an alert must be absent before it is considered resolved (0 = 2x resync, min 90s)")
-	flag.DurationVar(&f.resyncPeriod, "resync-period", 60*time.Second, "informer resync period; also how often time-based rules are re-checked")
-	flag.IntVar(&f.workers, "workers", 2, "number of reconcile workers")
-	flag.BoolVar(&f.enableEvents, "enable-events", true, "emit Kubernetes Events for alerts (needs create permission on events)")
-	flag.StringVar(&f.logFormat, "log-format", "json", "log format: json or text")
-	flag.BoolVar(&f.showVersion, "version", false, "print version and exit")
-	flag.Parse()
+// registerFlags binds every flag onto fs and returns the struct they write
+// into. Split out from parseFlags so tests can drive it with their own
+// FlagSet and argument slice instead of the process-global flag.CommandLine.
+func registerFlags(fs *flag.FlagSet) *flags {
+	f := &flags{}
+	fs.StringVar(&f.kubeconfig, "kubeconfig", envOr("KUBECONFIG", ""), "path to kubeconfig; empty means in-cluster config, then ~/.kube/config")
+	fs.StringVar(&f.namespace, "namespace", "", "namespace to watch; empty with --all-namespaces=false watches the namespace from kubeconfig context")
+	fs.BoolVar(&f.allNamespaces, "all-namespaces", true, "watch Pods in every namespace")
+	fs.BoolVar(&f.watchNodes, "watch-nodes", true, "also watch Nodes for NotReady / resource pressure")
+	fs.StringVar(&f.metricsAddr, "metrics-addr", ":8080", "address for the /metrics, /healthz and /readyz server")
+	fs.IntVar(&f.restartThreshold, "restart-threshold", 5, "per-container restart count that trips HighRestartCount when not Ready")
+	fs.DurationVar(&f.pendingGrace, "pending-grace", 5*time.Minute, "how long a Pod may stay Pending before PodStuckPending fires")
+	fs.DurationVar(&f.nodeGrace, "node-notready-grace", 2*time.Minute, "how long a Node may be NotReady before NodeNotReady fires")
+	fs.DurationVar(&f.rapidWindow, "rapid-restart-window", 2*time.Minute, "sliding window for the rapid-restart burst detector")
+	fs.IntVar(&f.rapidCount, "rapid-restart-count", 3, "restart-count increases within the window that trip RapidRestart (0 disables)")
+	fs.DurationVar(&f.resendInterval, "resend-interval", 10*time.Minute, "minimum gap before an identical alert is delivered again")
+	fs.DurationVar(&f.clearGrace, "clear-grace", 0, "how long an alert must be absent before it is considered resolved (0 = 2x resync, min 90s)")
+	fs.DurationVar(&f.resyncPeriod, "resync-period", 60*time.Second, "informer resync period; also how often time-based rules are re-checked")
+	fs.IntVar(&f.workers, "workers", 2, "number of reconcile workers")
+	fs.BoolVar(&f.enableEvents, "enable-events", true, "emit Kubernetes Events for alerts (needs create permission on events)")
+	fs.StringVar(&f.logFormat, "log-format", "json", "log format: json or text")
+	fs.BoolVar(&f.showVersion, "version", false, "print version and exit")
 	return f
+}
+
+func parseFlags() flags {
+	f := registerFlags(flag.CommandLine)
+	flag.Parse()
+	return *f
 }
 
 func main() {

@@ -18,7 +18,13 @@ jobs:
       - name: race tests
         run: go test ./... -race -covermode=atomic -coverprofile=cover.out
       - name: coverage summary
-        run: go tool cover -func=cover.out | tail -1
+        run: |
+          echo "per-package:"
+          go test ./... -covermode=atomic 2>/dev/null | grep -E 'coverage:' || true
+          echo
+          grep -v '/cmd/sentinel/' cover.out > cover.internal
+          printf 'internal packages aggregate:  %s\n' "$(go tool cover -func=cover.internal | awk 'END{print $NF}')"
+          printf 'whole tree aggregate:         %s\n' "$(go tool cover -func=cover.out      | awk 'END{print $NF}')"
 
   image:
     runs-on: ubuntu-latest

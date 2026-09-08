@@ -215,8 +215,28 @@ make cover
   counter wiring.
 - `internal/k8sclient` — the list-then-watch loop end to end against an
   `httptest` server, including a forced 410 Gone → relist.
+- `cmd/sentinel` — flag defaults/overrides, kubeconfig REST-config and
+  namespace resolution, logger construction.
 
 Everything runs under `-race`.
+
+Statement coverage (`go test ./... -covermode=atomic`, reproduced by
+`make cover` and printed by CI):
+
+| Package | Coverage |
+| --- | --- |
+| `internal/reliability` (rule engine) | ~90% |
+| `internal/alert` | ~85% |
+| `internal/watcher` (controller) | ~77% |
+| `internal/metrics` | ~73% |
+| `internal/k8sclient` | ~68% |
+| `cmd/sentinel` (flags + wiring) | ~34% |
+| **internal packages, aggregate** | **~77%** |
+| whole tree (incl. `cmd/sentinel`) | ~70% |
+
+`cmd/sentinel` is mostly the informer/clientset/EventBroadcaster wiring and
+signal handling in `main`/`run`, which is exercised by the kind e2e job
+rather than unit tests; its pure helpers are unit-tested.
 
 ## Layout
 

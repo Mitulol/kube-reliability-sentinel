@@ -20,8 +20,12 @@ vet:
 	go vet ./...
 
 cover:
-	go test ./... -coverprofile=cover.out
-	go tool cover -func=cover.out | tail -1
+	go test ./... -covermode=atomic -coverprofile=cover.out
+	@echo
+	@go test ./... -covermode=atomic 2>/dev/null | grep -E 'coverage:' || true
+	@grep -v '/cmd/sentinel/' cover.out > cover.internal
+	@printf 'internal packages aggregate:  %s\n' "$$(go tool cover -func=cover.internal | awk 'END{print $$NF}')"
+	@printf 'whole tree aggregate:         %s\n' "$$(go tool cover -func=cover.out      | awk 'END{print $$NF}')"
 
 image:
 	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) -t $(IMAGE) .
@@ -47,4 +51,4 @@ chaos:
 	kubectl apply -f hack/chaos-workloads.yaml
 
 clean:
-	rm -rf bin cover.out
+	rm -rf bin cover.out cover.internal

@@ -1,4 +1,5 @@
 /bin/
 cover.out
+cover.internal
 *.coverprofile
 kubeconfig
